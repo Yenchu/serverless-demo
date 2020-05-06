@@ -1,0 +1,11 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "serverless-demo"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-1tg10yn7vrnrf"
+s3_prefix = "serverless-demo"
+region = "ap-northeast-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "ImageApiName=\"image-api\""

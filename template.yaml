@@ -1,0 +1,172 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  SAM Template for serverless image uploading and download.
+
+Parameters:
+  ImageApiName:
+    Type: String
+    Default: image-api
+
+Globals:
+  Function:
+    Runtime: go1.x
+    Timeout: 10
+
+Resources:
+  ImageApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Ref ImageApiName
+      StageName: Prod
+      TracingEnabled: true
+      MethodSettings:
+        - ResourcePath: '/*'
+          HttpMethod: '*'
+          LoggingLevel: INFO
+          MetricsEnabled: true
+          ThrottlingRateLimit: 5
+          ThrottlingBurstLimit: 10
+
+  GetUploadUrlFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: fn/get-upload-url/
+      Handler: get-upload-url
+      Tracing: Active
+      Events:
+        GetUploadUrl:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ImageApi
+            Path: /get-upload-url
+            Method: POST
+      Policies:
+        - S3WritePolicy:
+            BucketName: !Ref ImageBucket
+      Environment:
+        Variables:
+          S3_BUCKET: !Ref ImageBucket
+
+  GetDownloadUrlFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: fn/get-download-url/
+      Handler: get-download-url
+      Tracing: Active
+      Events:
+        GetDownloadUrl:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ImageApi
+            Path: /get-download-url
+            Method: POST
+      Policies:
+        - SSMParameterReadPolicy:
+            ParameterName: "applications/ServerlessDemo/*"
+      Environment:
+        Variables:
+          CF_DOMAIN_NAME: !GetAtt CloudfrontDistribution.DomainName
+
+  ResizeImageFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: fn/resize-image/
+      Handler: resize-image
+      Tracing: Active
+      Events:
+        OnObjectCreated:
+          Type: S3
+          Properties:
+            Bucket: !Ref ImageBucket
+            Events:
+              - s3:ObjectCreated:*
+
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: fn/hello-world/
+      Handler: hello-world
+      Tracing: Active 
+      Events:
+        Hello:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ImageApi
+            Path: /hello
+            Method: GET
+      Environment: 
+        Variables:
+          PARAM1: VALUE
+
+  ImageBucket:
+    Type: AWS::S3::Bucket
+
+  ImageBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ImageBucket
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource:
+              - !Sub "arn:aws:s3:::${ImageBucket}/*"
+            Principal:
+              CanonicalUser: !GetAtt CloudFrontOriginAccessIdentity.S3CanonicalUserId
+              #AWS: !Sub "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontOriginAccessIdentity}"
+
+  CloudFrontOriginAccessIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: "Serverless image download"
+
+  CloudfrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: "Cloudfront distribution for serverless-demo image download"
+        Enabled: true
+        HttpVersion: http2
+        Origins:
+          - Id: imageBucketOrigin
+            DomainName: !GetAtt ImageBucket.DomainName
+            S3OriginConfig:
+              OriginAccessIdentity:
+                Fn::Sub: "origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}"
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          Compress: true
+          ForwardedValues:
+            QueryString: true
+          TargetOriginId: imageBucketOrigin
+          TrustedSigners:
+            - self
+          ViewerProtocolPolicy: redirect-to-https
+
+Outputs:
+  ImageApi:
+    Description: "API Gateway endpoint URL for Prod environment"
+    Value: !Sub "https://${ImageApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+  GetUploadUrlFunction:
+    Description: "Get Upload URL Function ARN"
+    Value: !GetAtt GetUploadUrlFunction.Arn
+  GetDownloadUrlFunction:
+    Description: "Get Download URL Function ARN"
+    Value: !GetAtt GetDownloadUrlFunction.Arn
+  ResizeImageFunction:
+    Description: "Resize Image Function ARN"
+    Value: !GetAtt ResizeImageFunction.Arn
+  HelloWorldFunction:
+    Description: "Hello World Function ARN"
+    Value: !GetAtt HelloWorldFunction.Arn
+  ImageBucket:
+    Description: "Image S3 bucket"
+    Value: !Ref ImageBucket
+  ImageDomain:
+    Description: 'Image Cloudfront domain name'
+    Value: !GetAtt CloudfrontDistribution.DomainName
