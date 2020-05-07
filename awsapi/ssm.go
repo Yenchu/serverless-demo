@@ -1,4 +1,4 @@
-package awssvc
+package awsapi
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func NewSsmClient() *SsmClient {
+func NewSsmAPI() *SsmAPI {
 
 	awsCfg, err := external.LoadDefaultAWSConfig()
 	if err != nil {
@@ -16,16 +16,16 @@ func NewSsmClient() *SsmClient {
 
 	client := ssm.New(awsCfg)
 
-	return &SsmClient{
+	return &SsmAPI{
 		client: client,
 	}
 }
 
-type SsmClient struct {
+type SsmAPI struct {
 	client *ssm.Client
 }
 
-func (api *SsmClient) GetParameter(name string) (string, error) {
+func (api *SsmAPI) GetParameter(name string) (string, error) {
 
 	ctx, cancelFn := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelFn()
@@ -43,7 +43,7 @@ func (api *SsmClient) GetParameter(name string) (string, error) {
 	return *resp.Parameter.Value, nil
 }
 
-func (api *SsmClient) GetDecryptedParameter(name string) (string, error) {
+func (api *SsmAPI) GetDecryptedParameter(name string) (string, error) {
 
 	ctx, cancelFn := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelFn()
@@ -63,7 +63,7 @@ func (api *SsmClient) GetDecryptedParameter(name string) (string, error) {
 	return *resp.Parameter.Value, nil
 }
 
-func (api *SsmClient) GetParameters(names ...string) (map[string]string, error) {
+func (api *SsmAPI) GetParameters(names ...string) (map[string]string, error) {
 
 	ctx, cancelFn := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelFn()

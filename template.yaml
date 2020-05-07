@@ -10,6 +10,7 @@ Parameters:
 
 Globals:
   Function:
+    MemorySize: 512
     Runtime: go1.x
     Timeout: 10
 

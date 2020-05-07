@@ -1,4 +1,4 @@
-package awssvc
+package awsapi
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-func NewS3Client() *S3Client {
+func NewS3API() *S3API {
 
 	awsCfg, err := external.LoadDefaultAWSConfig()
 	if err != nil {
@@ -20,7 +20,7 @@ func NewS3Client() *S3Client {
 
 	client := s3.New(awsCfg)
 
-	return &S3Client{
+	return &S3API{
 		client: client,
 	}
 }
@@ -33,11 +33,11 @@ type S3PreSignURLRequest struct {
 	TTL         time.Duration
 }
 
-type S3Client struct {
+type S3API struct {
 	client *s3.Client
 }
 
-func (api *S3Client) GetPutObjectPreSignURL(reqData *S3PreSignURLRequest) (string, error) {
+func (api *S3API) GetPutObjectPreSignURL(reqData *S3PreSignURLRequest) (string, error) {
 
 	input := &s3.PutObjectInput{
 		Bucket:      aws.String(reqData.Bucket),
@@ -51,7 +51,7 @@ func (api *S3Client) GetPutObjectPreSignURL(reqData *S3PreSignURLRequest) (strin
 	return req.Presign(10 * time.Minute)
 }
 
-func (api *S3Client) GetPutObjectPreSignURLHeaders(reqData *S3PreSignURLRequest) (string, http.Header, error) {
+func (api *S3API) GetPutObjectPreSignURLHeaders(reqData *S3PreSignURLRequest) (string, http.Header, error) {
 
 	input := &s3.PutObjectInput{
 		Bucket:      aws.String(reqData.Bucket),
@@ -67,7 +67,7 @@ func (api *S3Client) GetPutObjectPreSignURLHeaders(reqData *S3PreSignURLRequest)
 	return url, headers, err
 }
 
-func (api *S3Client) GetObject(bucket, key string) (*s3.GetObjectResponse, error) {
+func (api *S3API) GetObject(bucket, key string) (*s3.GetObjectResponse, error) {
 
 	input := &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
@@ -83,7 +83,7 @@ func (api *S3Client) GetObject(bucket, key string) (*s3.GetObjectResponse, error
 	return resp, nil
 }
 
-func (api *S3Client) PutObject(body io.Reader, bucket, key, contentType string, metadata map[string]string) (*s3.PutObjectResponse, error) {
+func (api *S3API) PutObject(body io.Reader, bucket, key, contentType string, metadata map[string]string) (*s3.PutObjectResponse, error) {
 
 	input := &s3.PutObjectInput{
 		Body:        aws.ReadSeekCloser(body),

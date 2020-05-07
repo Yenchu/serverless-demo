@@ -3,7 +3,7 @@ package apigwevent
 import (
 	"encoding/json"
 	"github.com/aws/aws-lambda-go/events"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 )
 
@@ -12,7 +12,6 @@ func ParseRequest(req events.APIGatewayProxyRequest, data interface{}) error {
 	if req.Body != "" {
 		err := json.Unmarshal([]byte(req.Body), &data)
 		if err != nil {
-			log.Printf("json error: %v", err)
 			return err
 		}
 	}
@@ -23,11 +22,18 @@ func Response(body interface{}, status int) (events.APIGatewayProxyResponse, err
 
 	bodyBytes, err := json.Marshal(body)
 	if err != nil {
-		log.Printf("json error: %v", err)
-		return events.APIGatewayProxyResponse{}, err
+		log.WithFields(log.Fields{"error": err}).Error("Parse JSON failed")
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusInternalServerError,
+			Body: err.Error(),
+		}, err
 	}
 
 	bodyStr := string(bodyBytes)
+
+	if status < 200 || status >= 400 {
+		log.WithFields(log.Fields{"status": status, "body": bodyStr}).Error("REST error response")
+	}
 
 	return events.APIGatewayProxyResponse{
 		StatusCode: status,

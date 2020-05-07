@@ -1,4 +1,4 @@
-package awssvc
+package awsapi
 
 import (
 	"crypto/rsa"
@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func NewCloudFrontClient(cfg *CloudFrontConfig) *CloudFrontClient {
+func NewCloudFrontAPI(cfg *CloudFrontConfig) *CloudFrontAPI {
 
 	awsCfg, err := external.LoadDefaultAWSConfig()
 	if err != nil {
@@ -17,7 +17,7 @@ func NewCloudFrontClient(cfg *CloudFrontConfig) *CloudFrontClient {
 
 	client := cloudfront.New(awsCfg)
 
-	return &CloudFrontClient{
+	return &CloudFrontAPI{
 		cfg:    cfg,
 		client: client,
 	}
@@ -33,12 +33,12 @@ type CloudFrontConfig struct {
 	PrivateKey *rsa.PrivateKey
 }
 
-type CloudFrontClient struct {
+type CloudFrontAPI struct {
 	cfg    *CloudFrontConfig
 	client *cloudfront.Client
 }
 
-func (api *CloudFrontClient) GetSignURL(reqData *CFSignURLRequest) (string, error) {
+func (api *CloudFrontAPI) GetSignURL(reqData *CFSignURLRequest) (string, error) {
 
 	signer := sign.NewURLSigner(api.cfg.KeyID, api.cfg.PrivateKey)
 

@@ -1,24 +1,24 @@
 package service_test
 
 import (
+	"serverless-demo/model"
 	"serverless-demo/service"
 	"testing"
 )
 
 func TestGetUploadURL(t *testing.T) {
 
-	bucket := "abc"
-	key := "test.jpg"
-	contentType := "image/jpg"
-
-	metadata := map[string]string{
-		"width": "800",
-		"height": "600",
+	req := &model.GetUploadURLRequest{
+		Bucket:      "abc",
+		File:        "test.jpg",
+		ContentType: "image/jpg",
+		Width:       800,
+		Height:      600,
 	}
 
 	uploadSvc := service.NewUploadService()
 
-	resp, err := uploadSvc.GetUploadURL(bucket, key, contentType, metadata)
+	resp, err := uploadSvc.GetUploadURL(req)
 	if err != nil {
 		t.Fatalf("GetUploadURL failed: %v", err)
 	}

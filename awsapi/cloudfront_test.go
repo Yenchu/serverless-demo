@@ -1,10 +1,10 @@
-package awssvc_test
+package awsapi_test
 
 import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront/sign"
 	"io/ioutil"
 	"os"
-	"serverless-demo/awssvc"
+	"serverless-demo/awsapi"
 	"strings"
 	"testing"
 )
@@ -27,9 +27,9 @@ func TestLoadFilePrivKey(t *testing.T) {
 
 func TestLoadSSMPrivKey(t *testing.T) {
 
-	ssmClient := awssvc.NewSsmClient()
+	ssmApi := awsapi.NewSsmAPI()
 
-	pkStr, err := ssmClient.GetDecryptedParameter("/applications/ServerlessDemo/CloudFront/PrivateKey")
+	pkStr, err := ssmApi.GetDecryptedParameter("/applications/ServerlessDemo/CloudFront/PrivateKey")
 	if err != nil {
 		t.Fatalf("GetDecryptedParameter failed: %v", err)
 	}

@@ -5,37 +5,38 @@ import (
 	"fmt"
 	"github.com/disintegration/imaging"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"io"
-	"serverless-demo/awssvc"
+	"serverless-demo/awsapi"
 	"strconv"
 	"strings"
 )
 
 const (
-	MetadataWidth = "Width"
+	MetadataWidth  = "Width"
 	MetadataHeight = "Height"
 )
 
 func NewImageService() *ImageService {
 
 	return &ImageService{
-		s3Client: awssvc.NewS3Client(),
+		s3Api: awsapi.NewS3API(),
 	}
 }
 
 type ImageService struct {
-	s3Client *awssvc.S3Client
+	s3Api *awsapi.S3API
 }
 
 func (svc *ImageService) ResizeImage(bucket, key string) error {
 
-	object, err := svc.s3Client.GetObject(bucket, key)
+	object, err := svc.s3Api.GetObject(bucket, key)
 	if err != nil {
 		return err
 	}
 
 	metadata := object.Metadata
-	//fmt.Printf("metadata: %v", metadata)
+	log.WithFields(log.Fields{"metadata": metadata}).Info("Get object")
 
 	var contentType string
 	var imgType string
@@ -80,11 +81,11 @@ func (svc *ImageService) ResizeImage(bucket, key string) error {
 	metadata[MetadataWidth] = "0"
 	metadata[MetadataHeight] = "0"
 
-	resp, err := svc.s3Client.PutObject(bytes.NewReader(resizedObj), bucket, key, contentType, metadata)
+	resp, err := svc.s3Api.PutObject(bytes.NewReader(resizedObj), bucket, key, contentType, metadata)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("put object result: %v", resp)
+	log.WithFields(log.Fields{"result": resp.String()}).Info("Put resized object")
 	return nil
 }
 

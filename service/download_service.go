@@ -1,10 +1,11 @@
 package service
 
 import (
-	"fmt"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront/sign"
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"net/url"
-	"serverless-demo/awssvc"
+	"serverless-demo/awsapi"
 	"serverless-demo/model"
 	"strings"
 	"time"
@@ -13,36 +14,59 @@ import (
 const (
 	SsmCFKeyID      = "/applications/ServerlessDemo/CloudFront/KeyId"
 	SsmCFPrivateKey = "/applications/ServerlessDemo/CloudFront/PrivateKey"
-	CFSignedURLTTL = 7 * 24 * time.Hour
+	CFSignedUrlTTL  = 7 * 24 * time.Hour
 )
 
 func NewDownloadService() *DownloadService {
 
-	ssmClient := awssvc.NewSsmClient()
+	ssmApi := awsapi.NewSsmAPI()
 
-	cfCfg, err := createCFConfig(ssmClient)
+	cfCfg, err := createCFConfig(ssmApi)
 	if err != nil {
 		panic("failed to create CloudFront config, " + err.Error())
 	}
 
-	cfClient := awssvc.NewCloudFrontClient(cfCfg)
+	cfApi := awsapi.NewCloudFrontAPI(cfCfg)
 
 	return &DownloadService{
-		ssmClient: ssmClient,
-		cfClient:  cfClient,
+		ssmApi: ssmApi,
+		cfApi:  cfApi,
 	}
 }
 
-func createCFConfig(ssmClient *awssvc.SsmClient) (*awssvc.CloudFrontConfig, error) {
+func createCFConfig(ssmClient *awsapi.SsmAPI) (*awsapi.CloudFrontConfig, error) {
 
-	keyID, err := ssmClient.GetParameter(SsmCFKeyID)
-	if err != nil {
-		return nil, err
+	chErr := ""
+	pkCh := make(chan string)
+	go func() {
+		pkStr, err := ssmClient.GetDecryptedParameter(SsmCFPrivateKey)
+		if err != nil {
+			log.WithFields(log.Fields{"param": SsmCFPrivateKey}).Error("GetDecryptedParameter failed")
+			pkCh <- chErr
+		} else {
+			pkCh <- pkStr
+		}
+	}()
+
+	idCh := make(chan string)
+	go func() {
+		keyID, err := ssmClient.GetParameter(SsmCFKeyID)
+		if err != nil {
+			log.WithFields(log.Fields{"param": SsmCFKeyID}).Error("GetParameter failed")
+			idCh <- chErr
+		} else {
+			idCh <- keyID
+		}
+	}()
+
+	pkStr := <-pkCh
+	keyID := <-idCh
+
+	if pkStr == chErr {
+		return nil, errors.Errorf("Get SSM parameter %s failed", SsmCFPrivateKey)
 	}
-
-	pkStr, err := ssmClient.GetDecryptedParameter(SsmCFPrivateKey)
-	if err != nil {
-		return nil, err
+	if keyID == chErr {
+		return nil, errors.Errorf("Get SSM parameter %s failed", SsmCFKeyID)
 	}
 
 	privKey, err := sign.LoadPEMPrivKey(strings.NewReader(pkStr))
@@ -50,32 +74,31 @@ func createCFConfig(ssmClient *awssvc.SsmClient) (*awssvc.CloudFrontConfig, erro
 		return nil, err
 	}
 
-	return &awssvc.CloudFrontConfig{
+	return &awsapi.CloudFrontConfig{
 		KeyID:      keyID,
 		PrivateKey: privKey,
 	}, nil
 }
 
 type DownloadService struct {
-	ssmClient *awssvc.SsmClient
-	cfClient  *awssvc.CloudFrontClient
+	ssmApi *awsapi.SsmAPI
+	cfApi  *awsapi.CloudFrontAPI
 }
 
-func (svc *DownloadService) GetDownloadURL(domain, file string) (*model.GetDownloadURLResponse, error) {
+func (svc *DownloadService) GetDownloadURL(req *model.GetDownloadURLRequest) (*model.GetDownloadURLResponse, error) {
 
 	urlObj := &url.URL{
-		Scheme: "https",
-		Host: domain,
-		Path: file,
+		Scheme: req.Scheme,
+		Host:   req.Domain,
+		Path:   req.File,
 	}
-	fmt.Printf("get download url: %s", urlObj.String())
 
-	reqData := &awssvc.CFSignURLRequest{
+	reqData := &awsapi.CFSignURLRequest{
 		URL: urlObj.String(),
-		TTL: CFSignedURLTTL,
+		TTL: CFSignedUrlTTL,
 	}
 
-	url, err := svc.cfClient.GetSignURL(reqData)
+	url, err := svc.cfApi.GetSignURL(reqData)
 	if err != nil {
 		return nil, err
 	}

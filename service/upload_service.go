@@ -1,36 +1,49 @@
 package service
 
 import (
-	"serverless-demo/awssvc"
+	"serverless-demo/awsapi"
 	"serverless-demo/model"
+	"strconv"
 	"strings"
 	"time"
 )
 
-const S3PreSignedURLTTL = 10 * time.Minute
+const S3PreSignedUrlTTL = 10 * time.Minute
 
 func NewUploadService() *UploadService {
 
 	return &UploadService{
-		s3Client: awssvc.NewS3Client(),
+		s3Api: awsapi.NewS3API(),
 	}
 }
 
 type UploadService struct {
-	s3Client *awssvc.S3Client
+	s3Api *awsapi.S3API
 }
 
-func (svc *UploadService) GetUploadURL(bucket, key, contentType string, metadata map[string]string) (*model.GetUploadURLResponse, error) {
+func (svc *UploadService) GetUploadURL(req *model.GetUploadURLRequest) (*model.GetUploadURLResponse, error) {
 
-	reqData := &awssvc.S3PreSignURLRequest{
-		Bucket:      bucket,
-		Key:         key,
-		ContentType: contentType,
-		Metadata:    metadata,
-		TTL:         S3PreSignedURLTTL,
+	metadata := map[string]string{}
+
+	width := req.Width
+	if width > 0 {
+		metadata["width"] = strconv.FormatInt(width, 10)
 	}
 
-	url, headers, err := svc.s3Client.GetPutObjectPreSignURLHeaders(reqData)
+	height := req.Height
+	if height > 0 {
+		metadata["height"] = strconv.FormatInt(height, 10)
+	}
+
+	reqData := &awsapi.S3PreSignURLRequest{
+		Bucket:      req.Bucket,
+		Key:         req.File,
+		ContentType: req.ContentType,
+		Metadata:    metadata,
+		TTL:         S3PreSignedUrlTTL,
+	}
+
+	url, headers, err := svc.s3Api.GetPutObjectPreSignURLHeaders(reqData)
 	if err != nil {
 		return nil, err
 	}

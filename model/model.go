@@ -1,6 +1,7 @@
 package model
 
 type GetUploadURLRequest struct {
+	Bucket      string `json:"bucket,omitempty"`
 	File        string `json:"file,omitempty"`
 	ContentType string `json:"contentType,omitempty"`
 	Width       int64  `json:"width,omitempty"`
@@ -13,7 +14,9 @@ type GetUploadURLResponse struct {
 }
 
 type GetDownloadURLRequest struct {
-	File string `json:"file,omitempty"`
+	Scheme string `json:"scheme,omitempty"`
+	Domain string `json:"domain,omitempty"`
+	File   string `json:"file,omitempty"`
 }
 
 type GetDownloadURLResponse struct {

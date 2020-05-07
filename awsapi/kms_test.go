@@ -1,27 +1,27 @@
-package awssvc_test
+package awsapi_test
 
 import (
 	"os"
-	"serverless-demo/awssvc"
+	"serverless-demo/awsapi"
 	"testing"
 )
 
-func newKmsClient() *awssvc.KmsClient {
+func newTestKmsApi() *awsapi.KmsAPI {
 
 	keyID := os.Getenv("KMS_KEY_ID")
 
-	cfg := &awssvc.KmsConfig{
+	cfg := &awsapi.KmsConfig{
 		KeyID: keyID,
 	}
 
-	return awssvc.NewKmsClient(cfg)
+	return awsapi.NewKmsAPI(cfg)
 }
 
 func TestListKeys(t *testing.T)  {
 
-	kmsClient := newKmsClient()
+	kmsApi := newTestKmsApi()
 
-	resp, err := kmsClient.ListKeys()
+	resp, err := kmsApi.ListKeys()
 	if err != nil {
 		t.Fatalf("ListKeys failed: %v", err)
 	}
@@ -32,9 +32,9 @@ func TestEncrypt(t *testing.T)  {
 
 	content := []byte("plain data")
 
-	kmsClient := newKmsClient()
+	kmsApi := newTestKmsApi()
 
-	resp, err := kmsClient.Encrypt(content)
+	resp, err := kmsApi.Encrypt(content)
 	if err != nil {
 		t.Fatalf("Encrypt failed: %v", err)
 	}

@@ -1,4 +1,4 @@
-package awssvc
+package awsapi
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 )
 
-func NewKmsClient(cfg *KmsConfig) *KmsClient {
+func NewKmsAPI(cfg *KmsConfig) *KmsAPI {
 
 	awsCfg, err := external.LoadDefaultAWSConfig()
 	if err != nil {
@@ -17,7 +17,7 @@ func NewKmsClient(cfg *KmsConfig) *KmsClient {
 
 	client := kms.New(awsCfg)
 
-	return &KmsClient{
+	return &KmsAPI{
 		cfg:    cfg,
 		client: client,
 	}
@@ -27,12 +27,12 @@ type KmsConfig struct {
 	KeyID string
 }
 
-type KmsClient struct {
+type KmsAPI struct {
 	cfg    *KmsConfig
 	client *kms.Client
 }
 
-func (api *KmsClient) ListKeys() (*kms.ListKeysResponse, error) {
+func (api *KmsAPI) ListKeys() (*kms.ListKeysResponse, error) {
 
 	input := &kms.ListKeysInput{}
 
@@ -41,7 +41,7 @@ func (api *KmsClient) ListKeys() (*kms.ListKeysResponse, error) {
 	return req.Send(context.Background())
 }
 
-func (api *KmsClient) Encrypt(plainText []byte) (string, error) {
+func (api *KmsAPI) Encrypt(plainText []byte) (string, error) {
 
 	input := &kms.EncryptInput{
 		KeyId:     aws.String(api.cfg.KeyID),

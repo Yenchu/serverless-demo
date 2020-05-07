@@ -1,4 +1,4 @@
-package awssvc
+package awsapi
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/dynamodbattribute"
 )
 
-func NewDynamoDBClient() *DynamoDBClient {
+func NewDynamoDbAPI() *DynamoDbAPI {
 
 	awsCfg, err := external.LoadDefaultAWSConfig()
 	if err != nil {
@@ -17,16 +17,16 @@ func NewDynamoDBClient() *DynamoDBClient {
 
 	client := dynamodb.New(awsCfg)
 
-	return &DynamoDBClient{
+	return &DynamoDbAPI{
 		client: client,
 	}
 }
 
-type DynamoDBClient struct {
+type DynamoDbAPI struct {
 	client *dynamodb.Client
 }
 
-func (api *DynamoDBClient) GetItem(tableName, keyName, keyVal string, item interface{}) error {
+func (api *DynamoDbAPI) GetItem(tableName, keyName, keyVal string, item interface{}) error {
 
 	key := map[string]dynamodb.AttributeValue{
 		keyName: {
@@ -48,7 +48,7 @@ func (api *DynamoDBClient) GetItem(tableName, keyName, keyVal string, item inter
 	return dynamodbattribute.UnmarshalMap(resp.Item, item)
 }
 
-func (api *DynamoDBClient) PutItem(tableName string, itemVal interface{}) error {
+func (api *DynamoDbAPI) PutItem(tableName string, itemVal interface{}) error {
 
 	item, err := dynamodbattribute.MarshalMap(itemVal)
 	if err != nil {

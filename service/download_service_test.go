@@ -2,19 +2,22 @@ package service_test
 
 import (
 	"os"
+	"serverless-demo/model"
 	"serverless-demo/service"
 	"testing"
 )
 
 func TestGetDownloadURL(t *testing.T) {
 
-	domain := os.Getenv("CF_DOMAIN_NAME")
-
-	file := "test.jpg"
+	req := &model.GetDownloadURLRequest{
+		Scheme: "https",
+		Domain: os.Getenv("CF_DOMAIN_NAME"),
+		File:   "test.jpg",
+	}
 
 	downloadSvc := service.NewDownloadService()
 
-	resp, err := downloadSvc.GetDownloadURL(domain, file)
+	resp, err := downloadSvc.GetDownloadURL(req)
 	if err != nil {
 		t.Fatalf("GetDownloadURL failed: %v", err)
 	}

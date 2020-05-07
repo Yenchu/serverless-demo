@@ -1,7 +1,7 @@
-package awssvc_test
+package awsapi_test
 
 import (
-	"serverless-demo/awssvc"
+	"serverless-demo/awsapi"
 	"testing"
 	"time"
 )
@@ -13,16 +13,16 @@ func TestGetPutObjectPreSignURL(t *testing.T) {
 		"height": "600",
 	}
 
-	reqData := &awssvc.S3PreSignURLRequest{
+	reqData := &awsapi.S3PreSignURLRequest{
 		Bucket: "abc",
 		Key: "test.jpg",
 		Metadata: metadata,
 		TTL: 10 * time.Minute,
 	}
 
-	s3Client := awssvc.NewS3Client()
+	s3Api := awsapi.NewS3API()
 
-	signedURL, err := s3Client.GetPutObjectPreSignURL(reqData)
+	signedURL, err := s3Api.GetPutObjectPreSignURL(reqData)
 	if err != nil {
 		t.Fatalf("GetPutObjectPreSignURL failed: %v", err)
 	}
@@ -36,16 +36,16 @@ func TestGetPutObjectPreSignURLHeaders(t *testing.T) {
 		"height": "600",
 	}
 
-	reqData := &awssvc.S3PreSignURLRequest{
+	reqData := &awsapi.S3PreSignURLRequest{
 		Bucket: "abc",
 		Key: "test.jpg",
 		Metadata: metadata,
 		TTL: 10 * time.Minute,
 	}
 
-	s3Client := awssvc.NewS3Client()
+	s3Api := awsapi.NewS3API()
 
-	url, headers, err := s3Client.GetPutObjectPreSignURLHeaders(reqData)
+	url, headers, err := s3Api.GetPutObjectPreSignURLHeaders(reqData)
 	if err != nil {
 		t.Fatalf("GetPutObjectPreSignURLHeaders failed: %v", err)
 	}

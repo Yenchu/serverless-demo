@@ -3,18 +3,21 @@ package main
 import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	log "github.com/sirupsen/logrus"
 	"os"
-	"serverless-demo/awssvc/apigwevent"
+	"serverless-demo/awsapi/apigwevent"
 	"serverless-demo/model"
 	"serverless-demo/service"
 )
 
-var domainName string
+const DefaultHTTPScheme = "https"
+
+var cfDomain string
 var downloadSvc *service.DownloadService
 
 func init() {
 
-	domainName = os.Getenv("CF_DOMAIN_NAME")
+	cfDomain = os.Getenv("CF_DOMAIN_NAME")
 
 	downloadSvc = service.NewDownloadService()
 }
@@ -27,10 +30,14 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	if err != nil {
 		return apigwevent.BadRequest(err)
 	}
+	log.WithFields(log.Fields{"file": reqData.File}).Info("Get download url request")
 
-	file := reqData.File
+	// these fields should not be open to frontend
+	//
+	reqData.Scheme = DefaultHTTPScheme
+	reqData.Domain = cfDomain
 
-	respData, err := downloadSvc.GetDownloadURL(domainName, file)
+	respData, err := downloadSvc.GetDownloadURL(reqData)
 	if err != nil {
 		return apigwevent.InternalServerError(err)
 	}

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"serverless-demo/service"
@@ -24,8 +25,8 @@ func handler(ctx context.Context, s3Event events.S3Event) {
 		bucket := s3.Bucket.Name
 		key := s3.Object.Key
 
-		fmt.Printf("[%s: %s - %s] Bucket = %s, Key = %s \n",
-			record.EventSource, record.EventName, record.EventTime, bucket, key)
+		log.WithFields(log.Fields{"source": record.EventSource, "event": record.EventName,
+			"bucket": bucket, "key": key}).Info("S3 event record")
 
 		//if record.EventName != "ObjectCreated:Put" {
 		//	continue
@@ -33,7 +34,7 @@ func handler(ctx context.Context, s3Event events.S3Event) {
 
 		err := imageSvc.ResizeImage(bucket, key)
 		if err != nil {
-			fmt.Printf("ResizeImage failed: %v", err)
+			log.WithFields(log.Fields{"error": err}).Error("ResizeImage failed")
 		}
 	}
 }
