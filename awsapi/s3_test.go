@@ -1,6 +1,7 @@
 package awsapi_test
 
 import (
+	"os"
 	"serverless-demo/awsapi"
 	"testing"
 	"time"
@@ -50,4 +51,29 @@ func TestGetPutObjectPreSignURLHeaders(t *testing.T) {
 		t.Fatalf("GetPutObjectPreSignURLHeaders failed: %v", err)
 	}
 	t.Logf("GetPutObjectPreSignURLHeaders:\nurl=%s\nheaders=%v", url, headers)
+}
+
+func TestPutObject(t *testing.T) {
+
+	image, err := os.Open("/Users/yenchu/data/serverless-demo/IMG_20180904_101908.jpg")
+	if err != nil {
+		t.Fatalf("OpenFile failed: %v", err)
+	}
+
+	bucket := os.Getenv("S3_BUCKET")
+	key := "resize/test.jpg"
+	contentType := "image/jpg"
+
+	metadata := map[string]string{
+		"width": "1024",
+		"height": "1024",
+	}
+
+	s3Api := awsapi.NewS3API()
+
+	resp, err := s3Api.PutObject(image, bucket, key, contentType, metadata)
+	if err != nil {
+		t.Fatalf("PutObject failed: %v", err)
+	}
+	t.Logf("PutObject result: %+v", resp)
 }

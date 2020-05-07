@@ -2,12 +2,12 @@ package service
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/disintegration/imaging"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"serverless-demo/awsapi"
+	"serverless-demo/model"
 	"strconv"
 	"strings"
 )
@@ -36,7 +36,7 @@ func (svc *ImageService) ResizeImage(bucket, key string) error {
 	}
 
 	metadata := object.Metadata
-	log.WithFields(log.Fields{"metadata": metadata}).Info("Get object")
+	log.WithFields(log.Fields{"key": key, "metadata": metadata}).Info("Get object")
 
 	var contentType string
 	var imgType string
@@ -68,7 +68,7 @@ func (svc *ImageService) ResizeImage(bucket, key string) error {
 	}
 
 	if newWidth <= 0 || newHeight <= 0 {
-		fmt.Printf("bucket %s key %s doesn't have valid resizing width %v and height %v", bucket, key, width, height)
+		log.WithFields(log.Fields{"bucket": bucket, "key": key, "width": width, "height": height}).Info("No need to resize")
 		return nil
 	}
 
@@ -77,15 +77,13 @@ func (svc *ImageService) ResizeImage(bucket, key string) error {
 		return err
 	}
 
-	// for test: set to zero to avoid resizing loop
-	metadata[MetadataWidth] = "0"
-	metadata[MetadataHeight] = "0"
+	key = strings.Replace(key, model.ResizeFileDir, model.ImagesFileDir, 1)
+	log.WithFields(log.Fields{"key": key}).Info("Put resized object")
 
-	resp, err := svc.s3Api.PutObject(bytes.NewReader(resizedObj), bucket, key, contentType, metadata)
+	_, err = svc.s3Api.PutObject(bytes.NewReader(resizedObj), bucket, key, contentType, metadata)
 	if err != nil {
 		return err
 	}
-	log.WithFields(log.Fields{"result": resp.String()}).Info("Put resized object")
 	return nil
 }
 

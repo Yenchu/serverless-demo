@@ -90,7 +90,7 @@ func (svc *DownloadService) GetDownloadURL(req *model.GetDownloadURLRequest) (*m
 	urlObj := &url.URL{
 		Scheme: req.Scheme,
 		Host:   req.Domain,
-		Path:   req.File,
+		Path:   model.ImagesFileDir + "/" + req.File,
 	}
 
 	reqData := &awsapi.CFSignURLRequest{

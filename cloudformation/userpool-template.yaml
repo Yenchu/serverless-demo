@@ -1,0 +1,58 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: User pool for serverless demo.
+
+Parameters:
+  UserPoolName:
+    Type: String
+    Default: serverless-demo-userpool
+  UserPoolClientName:
+    Type: String
+    Default: serverless-demo-userapp
+
+Resources:
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Ref UserPoolName
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: admin_only
+            Priority: 1
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: true
+        UnusedAccountValidityDays: 3
+      AutoVerifiedAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireNumbers: true
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Mutable: false
+          StringAttributeConstraints:
+            MaxLength: 64
+            MinLength: 0
+      UsernameAttributes:
+        - email
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Ref UserPoolClientName
+      ExplicitAuthFlows:
+        - ADMIN_NO_SRP_AUTH
+        - USER_PASSWORD_AUTH
+      GenerateSecret: false
+      RefreshTokenValidity: 1
+      UserPoolId: !Ref UserPool
+
+Outputs:
+  UserPoolId:
+    Description: "User Pool ID"
+    Value: !Ref UserPool
+  UserPoolClientId:
+    Description: "User Pool Client ID"
+    Value: !Ref UserPoolClient

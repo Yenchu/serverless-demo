@@ -7,6 +7,8 @@ Parameters:
   ImageApiName:
     Type: String
     Default: image-api
+  UserPoolId:
+    Type: String
 
 Globals:
   Function:
@@ -28,6 +30,10 @@ Resources:
           MetricsEnabled: true
           ThrottlingRateLimit: 5
           ThrottlingBurstLimit: 10
+      Auth:
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !Sub 'arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${UserPoolId}'
 
   GetUploadUrlFunction:
     Type: AWS::Serverless::Function
@@ -35,6 +41,12 @@ Resources:
       CodeUri: fn/get-upload-url/
       Handler: get-upload-url
       Tracing: Active
+      Policies:
+        - S3WritePolicy:
+            BucketName: !Ref ImageBucket
+      Environment:
+        Variables:
+          S3_BUCKET: !Ref ImageBucket
       Events:
         GetUploadUrl:
           Type: Api
@@ -42,12 +54,8 @@ Resources:
             RestApiId: !Ref ImageApi
             Path: /get-upload-url
             Method: POST
-      Policies:
-        - S3WritePolicy:
-            BucketName: !Ref ImageBucket
-      Environment:
-        Variables:
-          S3_BUCKET: !Ref ImageBucket
+            Auth:
+              Authorizer: CognitoAuthorizer
 
   GetDownloadUrlFunction:
     Type: AWS::Serverless::Function
@@ -55,6 +63,12 @@ Resources:
       CodeUri: fn/get-download-url/
       Handler: get-download-url
       Tracing: Active
+      Policies:
+        - SSMParameterReadPolicy:
+            ParameterName: "applications/ServerlessDemo/*"
+      Environment:
+        Variables:
+          CF_DOMAIN_NAME: !GetAtt CloudfrontDistribution.DomainName
       Events:
         GetDownloadUrl:
           Type: Api
@@ -62,12 +76,8 @@ Resources:
             RestApiId: !Ref ImageApi
             Path: /get-download-url
             Method: POST
-      Policies:
-        - SSMParameterReadPolicy:
-            ParameterName: "applications/ServerlessDemo/*"
-      Environment:
-        Variables:
-          CF_DOMAIN_NAME: !GetAtt CloudfrontDistribution.DomainName
+            Auth:
+              Authorizer: CognitoAuthorizer
 
   ResizeImageFunction:
     Type: AWS::Serverless::Function
@@ -75,6 +85,8 @@ Resources:
       CodeUri: fn/resize-image/
       Handler: resize-image
       Tracing: Active
+      # cannot specify ImageBucket because of circular dependency
+      Policies: AmazonS3FullAccess
       Events:
         OnObjectCreated:
           Type: S3
@@ -82,23 +94,21 @@ Resources:
             Bucket: !Ref ImageBucket
             Events:
               - s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: 'resize/'
 
-  HelloWorldFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: fn/hello-world/
-      Handler: hello-world
-      Tracing: Active 
-      Events:
-        Hello:
-          Type: Api
-          Properties:
-            RestApiId: !Ref ImageApi
-            Path: /hello
-            Method: GET
-      Environment: 
-        Variables:
-          PARAM1: VALUE
+   # To display S3 trigger on Lambda console only
+#  LambdaInvokePermission:
+#    Type: 'AWS::Lambda::Permission'
+#    Properties:
+#      FunctionName: !GetAtt ResizeImageFunction.Arn
+#      Action: 'lambda:InvokeFunction'
+#      Principal: 's3.amazonaws.com'
+#      SourceAccount: !Sub ${AWS::AccountId}
+#      SourceArn: !GetAtt ImageBucket.Arn
 
   ImageBucket:
     Type: AWS::S3::Bucket
@@ -115,7 +125,6 @@ Resources:
               - !Sub "arn:aws:s3:::${ImageBucket}/*"
             Principal:
               CanonicalUser: !GetAtt CloudFrontOriginAccessIdentity.S3CanonicalUserId
-              #AWS: !Sub "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontOriginAccessIdentity}"
 
   CloudFrontOriginAccessIdentity:
     Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
@@ -162,9 +171,6 @@ Outputs:
   ResizeImageFunction:
     Description: "Resize Image Function ARN"
     Value: !GetAtt ResizeImageFunction.Arn
-  HelloWorldFunction:
-    Description: "Hello World Function ARN"
-    Value: !GetAtt HelloWorldFunction.Arn
   ImageBucket:
     Description: "Image S3 bucket"
     Value: !Ref ImageBucket

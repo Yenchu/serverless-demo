@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func newTestKmsApi() *awsapi.KmsAPI {
+func newTestKmsAPI() *awsapi.KmsAPI {
 
 	keyID := os.Getenv("KMS_KEY_ID")
 
@@ -19,7 +19,7 @@ func newTestKmsApi() *awsapi.KmsAPI {
 
 func TestListKeys(t *testing.T)  {
 
-	kmsApi := newTestKmsApi()
+	kmsApi := newTestKmsAPI()
 
 	resp, err := kmsApi.ListKeys()
 	if err != nil {
@@ -32,7 +32,7 @@ func TestEncrypt(t *testing.T)  {
 
 	content := []byte("plain data")
 
-	kmsApi := newTestKmsApi()
+	kmsApi := newTestKmsAPI()
 
 	resp, err := kmsApi.Encrypt(content)
 	if err != nil {

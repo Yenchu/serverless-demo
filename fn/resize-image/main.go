@@ -2,10 +2,9 @@ package main
 
 import (
 	"context"
-	"fmt"
-	log "github.com/sirupsen/logrus"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	log "github.com/sirupsen/logrus"
 	"serverless-demo/service"
 )
 

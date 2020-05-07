@@ -1,0 +1,193 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'SAM Template for serverless image uploading and download.
+
+  '
+Parameters:
+  ImageApiName:
+    Type: String
+    Default: image-api
+  UserPoolId:
+    Type: String
+    Default: ap-northeast-1_IZoqP5tuE
+  UserPoolClientId:
+    Type: String
+    Default: 49o7cijpurv2ost6ojhbg3tqhm
+Globals:
+  Function:
+    MemorySize: 512
+    Runtime: go1.x
+    Timeout: 10
+Resources:
+  ImageApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name:
+        Ref: ImageApiName
+      StageName: Prod
+      TracingEnabled: true
+      MethodSettings:
+      - ResourcePath: /*
+        HttpMethod: '*'
+        LoggingLevel: INFO
+        MetricsEnabled: true
+        ThrottlingRateLimit: 5
+        ThrottlingBurstLimit: 10
+      Auth:
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn:
+              Fn::Sub: arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${UserPoolId}
+  GetUploadUrlFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: GetUploadUrlFunction
+      Handler: get-upload-url
+      Tracing: Active
+      Policies:
+      - S3WritePolicy:
+          BucketName:
+            Ref: ImageBucket
+      Environment:
+        Variables:
+          S3_BUCKET:
+            Ref: ImageBucket
+      Events:
+        GetUploadUrl:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ImageApi
+            Path: /get-upload-url
+            Method: POST
+            Auth:
+              Authorizer: CognitoAuthorizer
+  GetDownloadUrlFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: GetDownloadUrlFunction
+      Handler: get-download-url
+      Tracing: Active
+      Policies:
+      - SSMParameterReadPolicy:
+          ParameterName: applications/ServerlessDemo/*
+      Environment:
+        Variables:
+          CF_DOMAIN_NAME:
+            Fn::GetAtt:
+            - CloudfrontDistribution
+            - DomainName
+      Events:
+        GetDownloadUrl:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ImageApi
+            Path: /get-download-url
+            Method: POST
+            Auth:
+              Authorizer: CognitoAuthorizer
+  ResizeImageFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ResizeImageFunction
+      Handler: resize-image
+      Tracing: Active
+      Policies: AmazonS3FullAccess
+      Events:
+        OnObjectCreated:
+          Type: S3
+          Properties:
+            Bucket:
+              Ref: ImageBucket
+            Events:
+            - s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                - Name: prefix
+                  Value: resize/
+  ImageBucket:
+    Type: AWS::S3::Bucket
+  ImageBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: ImageBucket
+      PolicyDocument:
+        Statement:
+        - Effect: Allow
+          Action: s3:GetObject
+          Resource:
+          - Fn::Sub: arn:aws:s3:::${ImageBucket}/*
+          Principal:
+            CanonicalUser:
+              Fn::GetAtt:
+              - CloudFrontOriginAccessIdentity
+              - S3CanonicalUserId
+  CloudFrontOriginAccessIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: Serverless image download
+  CloudfrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: Cloudfront distribution for serverless-demo image download
+        Enabled: true
+        HttpVersion: http2
+        Origins:
+        - Id: imageBucketOrigin
+          DomainName:
+            Fn::GetAtt:
+            - ImageBucket
+            - DomainName
+          S3OriginConfig:
+            OriginAccessIdentity:
+              Fn::Sub: origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}
+        DefaultCacheBehavior:
+          AllowedMethods:
+          - GET
+          - HEAD
+          - OPTIONS
+          Compress: true
+          ForwardedValues:
+            QueryString: true
+          TargetOriginId: imageBucketOrigin
+          TrustedSigners:
+          - self
+          ViewerProtocolPolicy: redirect-to-https
+Outputs:
+  ImageApi:
+    Description: API Gateway endpoint URL for Prod environment
+    Value:
+      Fn::Sub: https://${ImageApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/
+  GetUploadUrlFunction:
+    Description: Get Upload URL Function ARN
+    Value:
+      Fn::GetAtt:
+      - GetUploadUrlFunction
+      - Arn
+  GetDownloadUrlFunction:
+    Description: Get Download URL Function ARN
+    Value:
+      Fn::GetAtt:
+      - GetDownloadUrlFunction
+      - Arn
+  ResizeImageFunction:
+    Description: Resize Image Function ARN
+    Value:
+      Fn::GetAtt:
+      - ResizeImageFunction
+      - Arn
+  ImageBucket:
+    Description: Image S3 bucket
+    Value:
+      Ref: ImageBucket
+  ImageDomain:
+    Description: Image Cloudfront domain name
+    Value:
+      Fn::GetAtt:
+      - CloudfrontDistribution
+      - DomainName

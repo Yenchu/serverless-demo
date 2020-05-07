@@ -8,7 +8,9 @@ import (
 	"time"
 )
 
-const S3PreSignedUrlTTL = 10 * time.Minute
+const (
+	S3PreSignedUrlTTL = 10 * time.Minute
+)
 
 func NewUploadService() *UploadService {
 
@@ -35,9 +37,16 @@ func (svc *UploadService) GetUploadURL(req *model.GetUploadURLRequest) (*model.G
 		metadata["height"] = strconv.FormatInt(height, 10)
 	}
 
+	key := req.File
+	if width > 0 && height > 0 {
+		key = model.ResizeFileDir + "/" + req.File
+	} else {
+		key = model.ImagesFileDir + "/" + req.File
+	}
+
 	reqData := &awsapi.S3PreSignURLRequest{
 		Bucket:      req.Bucket,
-		Key:         req.File,
+		Key:         key,
 		ContentType: req.ContentType,
 		Metadata:    metadata,
 		TTL:         S3PreSignedUrlTTL,
