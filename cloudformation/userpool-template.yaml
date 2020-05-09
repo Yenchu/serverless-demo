@@ -8,6 +8,9 @@ Parameters:
   UserPoolClientName:
     Type: String
     Default: serverless-demo-userapp
+  SSMParamRootPath:
+    Type: String
+    Default: /applications/ServerlessDemo
 
 Resources:
   UserPool:
@@ -20,7 +23,7 @@ Resources:
             Priority: 1
       AdminCreateUserConfig:
         AllowAdminCreateUserOnly: true
-        UnusedAccountValidityDays: 3
+        UnusedAccountValidityDays: 1
       AutoVerifiedAttributes:
         - email
       Policies:
@@ -49,10 +52,18 @@ Resources:
       RefreshTokenValidity: 1
       UserPoolId: !Ref UserPool
 
-Outputs:
   UserPoolId:
-    Description: "User Pool ID"
-    Value: !Ref UserPool
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub '${SSMParamRootPath}/Cognito/UserPool/Id'
+      Type: String
+      Value: !Ref UserPool
+      Description: "Serverless demo Cognito User Pool ID"
+
   UserPoolClientId:
-    Description: "User Pool Client ID"
-    Value: !Ref UserPoolClient
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub '${SSMParamRootPath}/Cognito/UserPoolClient/Id'
+      Type: String
+      Value: !Ref UserPoolClient
+      Description: "Serverless demo Cognito User Pool Client ID"

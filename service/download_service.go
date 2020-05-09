@@ -29,7 +29,6 @@ func NewDownloadService() *DownloadService {
 	cfApi := awsapi.NewCloudFrontAPI(cfCfg)
 
 	return &DownloadService{
-		ssmApi: ssmApi,
 		cfApi:  cfApi,
 	}
 }
@@ -69,19 +68,18 @@ func createCFConfig(ssmClient *awsapi.SsmAPI) (*awsapi.CloudFrontConfig, error) 
 		return nil, errors.Errorf("Get SSM parameter %s failed", SsmCFKeyID)
 	}
 
-	privKey, err := sign.LoadPEMPrivKey(strings.NewReader(pkStr))
+	pk, err := sign.LoadPEMPrivKey(strings.NewReader(pkStr))
 	if err != nil {
 		return nil, err
 	}
 
 	return &awsapi.CloudFrontConfig{
 		KeyID:      keyID,
-		PrivateKey: privKey,
+		PrivateKey: pk,
 	}, nil
 }
 
 type DownloadService struct {
-	ssmApi *awsapi.SsmAPI
 	cfApi  *awsapi.CloudFrontAPI
 }
 

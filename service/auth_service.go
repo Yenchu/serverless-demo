@@ -35,17 +35,13 @@ type AuthService struct {
 
 func (svc *AuthService) SignIn(param *model.SignInRequest) (*model.SignInResponse, error) {
 
-	authParams := map[string]string{}
-	authParams[model.ParamUsername] = param.Username
-	authParams[model.ParamPassword] = param.Password
-
-	return svc.doAuth(cip.AuthFlowTypeUserPasswordAuth, authParams)
-}
-
-func (svc *AuthService) doAuth(authFlow cip.AuthFlowType, authParams map[string]string) (*model.SignInResponse, error) {
+	authParams := map[string]string{
+		model.ParamUsername: param.Username,
+		model.ParamPassword: param.Password,
+	}
 
 	input := &cip.InitiateAuthInput{
-		AuthFlow:       authFlow,
+		AuthFlow:       cip.AuthFlowTypeUserPasswordAuth,
 		ClientId:       &svc.cfg.UserPoolClientID,
 		AuthParameters: authParams,
 	}

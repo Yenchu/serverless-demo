@@ -7,8 +7,9 @@ Parameters:
   ImageApiName:
     Type: String
     Default: image-api
-  UserPoolId:
+  SSMParamRootPath:
     Type: String
+    Default: /applications/ServerlessDemo
 
 Globals:
   Function:
@@ -33,8 +34,70 @@ Resources:
       Auth:
         Authorizers:
           CognitoAuthorizer:
-            UserPoolArn: !Sub 'arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${UserPoolId}'
+            UserPoolArn:
+              Fn::Join:
+                - ''
+                - - !Sub 'arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/'
+                  - !Sub '{{resolve:ssm:${SSMParamRootPath}/Cognito/UserPool/Id:1}}'
 
+  # auth-related APIS
+  SignInFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: fn/signin/
+      Handler: signin
+      Tracing: Active
+      Policies:
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:*
+              Resource:
+                - Fn::Join:
+                    - ''
+                    - - !Sub 'arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/'
+                      - !Sub '{{resolve:ssm:${SSMParamRootPath}/Cognito/UserPool/Id:1}}'
+      Environment:
+        Variables:
+          USER_POOL_CLIENT_ID: !Sub '{{resolve:ssm:${SSMParamRootPath}/Cognito/UserPoolClient/Id:1}}'
+      Events:
+        SignIn:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ImageApi
+            Path: /signin
+            Method: POST
+
+  RespondToChallengeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: fn/respond-to-challenge/
+      Handler: respond-to-challenge
+      Tracing: Active
+      Policies:
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:*
+              Resource:
+                - Fn::Join:
+                    - ''
+                    - - !Sub 'arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/'
+                      - !Sub '{{resolve:ssm:${SSMParamRootPath}/Cognito/UserPool/Id:1}}'
+      Environment:
+        Variables:
+          USER_POOL_CLIENT_ID: !Sub '{{resolve:ssm:${SSMParamRootPath}/Cognito/UserPoolClient/Id:1}}'
+      Events:
+        RespondToChallenge:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ImageApi
+            Path: /challenge
+            Method: POST
+
+  # Image-related APIs
   GetUploadUrlFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -65,7 +128,7 @@ Resources:
       Tracing: Active
       Policies:
         - SSMParameterReadPolicy:
-            ParameterName: "applications/ServerlessDemo/*"
+            ParameterName: 'applications/ServerlessDemo/*'
       Environment:
         Variables:
           CF_DOMAIN_NAME: !GetAtt CloudfrontDistribution.DomainName
@@ -122,7 +185,7 @@ Resources:
           - Effect: Allow
             Action: s3:GetObject
             Resource:
-              - !Sub "arn:aws:s3:::${ImageBucket}/*"
+              - !Sub 'arn:aws:s3:::${ImageBucket}/*'
             Principal:
               CanonicalUser: !GetAtt CloudFrontOriginAccessIdentity.S3CanonicalUserId
 
@@ -143,8 +206,7 @@ Resources:
           - Id: imageBucketOrigin
             DomainName: !GetAtt ImageBucket.DomainName
             S3OriginConfig:
-              OriginAccessIdentity:
-                Fn::Sub: "origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}"
+              OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}'
         DefaultCacheBehavior:
           AllowedMethods:
             - GET
@@ -162,6 +224,12 @@ Outputs:
   ImageApi:
     Description: "API Gateway endpoint URL for Prod environment"
     Value: !Sub "https://${ImageApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+  SignInFunction:
+    Description: "Sign In Function ARN"
+    Value: !GetAtt SignInFunction.Arn
+  RespondToChallengeFunction:
+    Description: "Respond To Challenge Function ARN"
+    Value: !GetAtt RespondToChallengeFunction.Arn
   GetUploadUrlFunction:
     Description: "Get Upload URL Function ARN"
     Value: !GetAtt GetUploadUrlFunction.Arn

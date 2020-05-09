@@ -48,7 +48,7 @@ func (api *S3API) GetPutObjectPreSignURL(reqData *S3PreSignURLRequest) (string, 
 
 	req := api.client.PutObjectRequest(input)
 
-	return req.Presign(10 * time.Minute)
+	return req.Presign(reqData.TTL)
 }
 
 func (api *S3API) GetPutObjectPreSignURLHeaders(reqData *S3PreSignURLRequest) (string, http.Header, error) {

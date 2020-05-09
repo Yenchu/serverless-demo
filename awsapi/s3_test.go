@@ -15,8 +15,9 @@ func TestGetPutObjectPreSignURL(t *testing.T) {
 	}
 
 	reqData := &awsapi.S3PreSignURLRequest{
-		Bucket: "abc",
-		Key: "test.jpg",
+		Bucket: os.Getenv("S3_BUCKET"),
+		Key: "resize/test2.jpg",
+		ContentType: "image/jpg",
 		Metadata: metadata,
 		TTL: 10 * time.Minute,
 	}
@@ -27,7 +28,7 @@ func TestGetPutObjectPreSignURL(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetPutObjectPreSignURL failed: %v", err)
 	}
-	t.Logf("GetPutObjectPreSignURL: %s", signedURL)
+	t.Logf("GetPutObjectPreSignURL:\n%s", signedURL)
 }
 
 func TestGetPutObjectPreSignURLHeaders(t *testing.T) {
@@ -38,8 +39,9 @@ func TestGetPutObjectPreSignURLHeaders(t *testing.T) {
 	}
 
 	reqData := &awsapi.S3PreSignURLRequest{
-		Bucket: "abc",
-		Key: "test.jpg",
+		Bucket: os.Getenv("S3_BUCKET"),
+		Key: "resize/test.jpg",
+		ContentType: "image/jpg",
 		Metadata: metadata,
 		TTL: 10 * time.Minute,
 	}
