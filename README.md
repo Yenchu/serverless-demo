@@ -1,7 +1,7 @@
 ## Serverless image uploading and downloading
 
 This is a demo application for image uploading and downloading.
-It uses S3 prs-signed URL to upload to S3, and CloudFront signed URL to download from CloudFront.
+It uses S3 prs-signed URL to upload to S3 and CloudFront signed URL to download from CloudFront.
 
 ### Architecture Design
 
@@ -43,8 +43,8 @@ You can use cURL to test these APIs.
 
 ##### Get S3 PreSigned URL for Upload
 
-To get a S3 pre-signed URL for uploading, you need to provide file name and content type.
-If you want to resize the image, you can provide width and height you want.
+To get a S3 pre-signed URL for uploading, you need to provide a file name.
+If you want to resize the image, you have to provide content type, width and height.
 
 ```
 curl -X POST -H "Content-Type: application/json" https://{API_GATEWAY_ENDPOINT}/get-upload-url
@@ -76,7 +76,7 @@ curl -X PUT -H "content-type: image/jpg" -H "x-amz-meta-heigh: 1024" -H "x-amz-m
 
 ##### Get CloudFront Signed URL for Download
 
-To get a CloudFront signed URL for downloading, you need to provide file name you want to download.
+To get a CloudFront signed URL for downloading, you need to provide the file name you want to download.
 
 ```
 curl -X POST -H "Content-Type: application/json" https://{API_GATEWAY_ENDPOINT}/get-download-url

@@ -68,8 +68,6 @@ Resources:
             RestApiId: !Ref ImageApi
             Path: /get-upload-url
             Method: POST
-            Auth:
-              Authorizer: CognitoAuthorizer
 
   GetDownloadUrlFunction:
     Type: AWS::Serverless::Function
@@ -89,8 +87,6 @@ Resources:
             RestApiId: !Ref ImageApi
             Path: /get-download-url
             Method: POST
-            Auth:
-              Authorizer: CognitoAuthorizer
 
   ResizeImageFunction:
     Type: AWS::Serverless::Function
