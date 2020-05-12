@@ -36,6 +36,14 @@ Resources:
         AllowOrigin: "'*'"
         AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
         AllowHeaders: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key'"
+      Auth:
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn:
+              Fn::Join:
+                - ''
+                - - !Sub 'arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/'
+                  - !Sub '{{resolve:ssm:${SSMParamRootPath}/Cognito/UserPool/Id:1}}'
       GatewayResponses:
         DEFAULT_4xx:
           ResponseParameters:
@@ -50,6 +58,60 @@ Resources:
               Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
               Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key'"
 
+  # Auth-related APIs
+  SignInFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: fn/signin/
+      Handler: signin
+      Policies:
+        - LambdaCognitoPolicy
+      Environment:
+        Variables:
+          USER_POOL_CLIENT_ID: !Sub '{{resolve:ssm:${SSMParamRootPath}/Cognito/UserPoolClient/Id:1}}'
+      Events:
+        SignIn:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ImageApi
+            Path: /signin
+            Method: POST
+
+  RespondToChallengeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: fn/respond-to-challenge/
+      Handler: respond-to-challenge
+      Policies:
+        - LambdaCognitoPolicy
+      Environment:
+        Variables:
+          USER_POOL_CLIENT_ID: !Sub '{{resolve:ssm:${SSMParamRootPath}/Cognito/UserPoolClient/Id:1}}'
+      Events:
+        RespondToChallenge:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ImageApi
+            Path: /signin-challenge
+            Method: POST
+
+  LambdaCognitoPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: To allow auth-related APIs to access Cognito user pool
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - cognito-idp:*
+            Resource:
+              Fn::Join:
+                - ''
+                - - !Sub 'arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/'
+                  - !Sub '{{resolve:ssm:${SSMParamRootPath}/Cognito/UserPool/Id:1}}'
+
+  # Image-related APIs
   GetUploadUrlFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -173,6 +235,12 @@ Outputs:
   ImageApi:
     Description: "API Gateway endpoint URL for Prod environment"
     Value: !Sub "https://${ImageApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+  SignInFunction:
+    Description: "Sign In Function ARN"
+    Value: !GetAtt SignInFunction.Arn
+  RespondToChallengeFunction:
+    Description: "Respond To Challenge Function ARN"
+    Value: !GetAtt RespondToChallengeFunction.Arn
   GetUploadUrlFunction:
     Description: "Get Upload URL Function ARN"
     Value: !GetAtt GetUploadUrlFunction.Arn

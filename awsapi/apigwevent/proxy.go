@@ -18,24 +18,38 @@ func ParseRequest(req events.APIGatewayProxyRequest, data interface{}) error {
 	return nil
 }
 
+func corsHeaders() map[string]string {
+
+	headers := map[string]string{
+		"Access-Control-Allow-Origin":  "*",
+		"Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+		"Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key",
+	}
+	return headers
+}
+
 func Response(body interface{}, status int) (events.APIGatewayProxyResponse, error) {
+
+	headers := corsHeaders()
 
 	bodyBytes, err := json.Marshal(body)
 	if err != nil {
 		log.WithFields(log.Fields{"error": err}).Error("Parse JSON failed")
 		return events.APIGatewayProxyResponse{
+			Headers:    headers,
 			StatusCode: http.StatusInternalServerError,
-			Body: err.Error(),
+			Body:       err.Error(),
 		}, err
 	}
 
 	bodyStr := string(bodyBytes)
 
 	if status < 200 || status >= 400 {
-		log.WithFields(log.Fields{"status": status, "body": bodyStr}).Error("REST error response")
+		log.WithFields(log.Fields{"status": status, "body": bodyStr}).Error("Handle request failed")
 	}
 
 	return events.APIGatewayProxyResponse{
+		Headers:    headers,
 		StatusCode: status,
 		Body:       bodyStr,
 	}, nil
@@ -48,10 +62,10 @@ func OK(body interface{}) (events.APIGatewayProxyResponse, error) {
 
 func BadRequest(err error) (events.APIGatewayProxyResponse, error) {
 
-	return Response(err, http.StatusBadRequest)
+	return Response(err.Error(), http.StatusBadRequest)
 }
 
 func InternalServerError(err error) (events.APIGatewayProxyResponse, error) {
 
-	return Response(err, http.StatusInternalServerError)
+	return Response(err.Error(), http.StatusInternalServerError)
 }
