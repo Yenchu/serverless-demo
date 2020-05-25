@@ -7,18 +7,12 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws/external"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 func NewS3API() *S3API {
 
-	awsCfg, err := external.LoadDefaultAWSConfig()
-	if err != nil {
-		panic("failed to load config, " + err.Error())
-	}
-
-	client := s3.New(awsCfg)
+	client := s3.New(LoadAWSConfig())
 
 	return &S3API{
 		client: client,

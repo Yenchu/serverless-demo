@@ -17,20 +17,20 @@ const (
 	CFSignedUrlTTL  = 7 * 24 * time.Hour
 )
 
-func NewDownloadService() *DownloadService {
+func NewDownloadService() (*DownloadService, error) {
 
 	ssmApi := awsapi.NewSsmAPI()
 
 	cfCfg, err := createCFConfig(ssmApi)
 	if err != nil {
-		panic("failed to create CloudFront config, " + err.Error())
+		return nil, err
 	}
 
 	cfApi := awsapi.NewCloudFrontAPI(cfCfg)
 
 	return &DownloadService{
-		cfApi:  cfApi,
-	}
+		cfApi: cfApi,
+	}, nil
 }
 
 func createCFConfig(ssmClient *awsapi.SsmAPI) (*awsapi.CloudFrontConfig, error) {
@@ -40,7 +40,7 @@ func createCFConfig(ssmClient *awsapi.SsmAPI) (*awsapi.CloudFrontConfig, error) 
 	go func() {
 		pkStr, err := ssmClient.GetDecryptedParameter(SsmCFPrivateKey)
 		if err != nil {
-			log.WithFields(log.Fields{"param": SsmCFPrivateKey}).Error("GetDecryptedParameter failed")
+			log.WithFields(log.Fields{"param": SsmCFPrivateKey, "error": err}).Error("GetDecryptedParameter failed")
 			pkCh <- chErr
 		} else {
 			pkCh <- pkStr
@@ -51,7 +51,7 @@ func createCFConfig(ssmClient *awsapi.SsmAPI) (*awsapi.CloudFrontConfig, error) 
 	go func() {
 		keyID, err := ssmClient.GetParameter(SsmCFKeyID)
 		if err != nil {
-			log.WithFields(log.Fields{"param": SsmCFKeyID}).Error("GetParameter failed")
+			log.WithFields(log.Fields{"param": SsmCFKeyID, "error": err}).Error("GetParameter failed")
 			idCh <- chErr
 		} else {
 			idCh <- keyID
@@ -80,7 +80,7 @@ func createCFConfig(ssmClient *awsapi.SsmAPI) (*awsapi.CloudFrontConfig, error) 
 }
 
 type DownloadService struct {
-	cfApi  *awsapi.CloudFrontAPI
+	cfApi *awsapi.CloudFrontAPI
 }
 
 func (svc *DownloadService) GetDownloadURL(req *model.GetDownloadURLRequest) (*model.GetDownloadURLResponse, error) {

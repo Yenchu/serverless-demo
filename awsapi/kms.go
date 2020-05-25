@@ -4,18 +4,12 @@ import (
 	"context"
 	"encoding/base64"
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/aws/external"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 )
 
 func NewKmsAPI(cfg *KmsConfig) *KmsAPI {
 
-	awsCfg, err := external.LoadDefaultAWSConfig()
-	if err != nil {
-		panic("failed to load config, " + err.Error())
-	}
-
-	client := kms.New(awsCfg)
+	client := kms.New(LoadAWSConfig())
 
 	return &KmsAPI{
 		cfg:    cfg,

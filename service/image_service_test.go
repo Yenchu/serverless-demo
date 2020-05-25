@@ -1,9 +1,9 @@
 package service_test
 
 import (
+	"serverless-demo/service"
 	"io/ioutil"
 	"os"
-	"serverless-demo/service"
 	"testing"
 )
 

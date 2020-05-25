@@ -3,19 +3,13 @@ package awsapi
 import (
 	"context"
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/aws/external"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/dynamodbattribute"
 )
 
 func NewDynamoDbAPI() *DynamoDbAPI {
 
-	awsCfg, err := external.LoadDefaultAWSConfig()
-	if err != nil {
-		panic("failed to load config, " + err.Error())
-	}
-
-	client := dynamodb.New(awsCfg)
+	client := dynamodb.New(LoadAWSConfig())
 
 	return &DynamoDbAPI{
 		client: client,

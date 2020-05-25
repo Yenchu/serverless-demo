@@ -2,7 +2,6 @@ package awsapi
 
 import (
 	"crypto/rsa"
-	"github.com/aws/aws-sdk-go-v2/aws/external"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront/sign"
 	"time"
@@ -10,12 +9,7 @@ import (
 
 func NewCloudFrontAPI(cfg *CloudFrontConfig) *CloudFrontAPI {
 
-	awsCfg, err := external.LoadDefaultAWSConfig()
-	if err != nil {
-		panic("failed to load config, " + err.Error())
-	}
-
-	client := cloudfront.New(awsCfg)
+	client := cloudfront.New(LoadAWSConfig())
 
 	return &CloudFrontAPI{
 		cfg:    cfg,

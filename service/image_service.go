@@ -2,12 +2,12 @@ package service
 
 import (
 	"bytes"
+	"serverless-demo/awsapi"
+	"serverless-demo/model"
 	"github.com/disintegration/imaging"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"io"
-	"serverless-demo/awsapi"
-	"serverless-demo/model"
 	"strconv"
 	"strings"
 )

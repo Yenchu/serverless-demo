@@ -19,7 +19,11 @@ func init() {
 
 	cfDomain = os.Getenv("CF_DOMAIN_NAME")
 
-	downloadSvc = service.NewDownloadService()
+	svc, err := service.NewDownloadService()
+	if err != nil {
+		log.Fatal(err)
+	}
+	downloadSvc = svc
 }
 
 func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
